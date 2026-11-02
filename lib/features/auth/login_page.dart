@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mochi_stok/core/theme.dart';
+import 'package:mochi_stok/widgets/main_shell.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -23,10 +24,8 @@ class _LoginPageState extends State<LoginPage> {
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Login belum terhubung ke layanan autentikasi.'),
-      ),
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(builder: (_) => const MainShell()),
     );
   }
 
@@ -167,43 +166,11 @@ class _MochiLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 112,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 82,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3E9),
-                  borderRadius: BorderRadius.circular(36),
-                ),
-              ),
-              const Text('🐰', style: TextStyle(fontSize: 52, height: 1)),
-              const Positioned(
-                top: 3,
-                right: 12,
-                child: Text('🍓', style: TextStyle(fontSize: 19)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          const Text(
-            'Mochi-Madu',
-            style: TextStyle(
-              color: Color(0xFF8A453D),
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
-              height: 1,
-              shadows: [Shadow(color: Color(0xFFFFD98A), offset: Offset(0, 1))],
-            ),
-          ),
-        ],
-      ),
+    return Image.asset(
+      'assets/images/mochi_madu_logo.png',
+      height: 140,
+      fit: BoxFit.contain,
+      semanticLabel: 'Logo Mochi Madu Premium Quality',
     );
   }
 }

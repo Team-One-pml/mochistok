@@ -8,8 +8,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:mochi_stok/features/home/home_page.dart';
 import 'package:mochi_stok/features/auth/login_page.dart';
 import 'package:mochi_stok/main.dart';
+import 'package:mochi_stok/widgets/main_shell.dart';
 
 void main() {
   testWidgets('shows Mochi Stock login page', (WidgetTester tester) async {
@@ -28,5 +30,30 @@ void main() {
 
     expect(find.text('Username wajib diisi.'), findsOneWidget);
     expect(find.text('Password wajib diisi.'), findsOneWidget);
+  });
+
+  testWidgets('shows home dashboard after login', (WidgetTester tester) async {
+    await tester.pumpWidget(const MaterialApp(home: LoginPage()));
+    await tester.enterText(find.byType(TextFormField).at(0), 'admin');
+    await tester.enterText(find.byType(TextFormField).at(1), 'password');
+    await tester.tap(find.text('Masuk'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MainShell), findsOneWidget);
+    expect(find.text('Halo, Admin'), findsOneWidget);
+    expect(find.text('Perlu diisi ulang'), findsOneWidget);
+    expect(find.text('Mochi matcha'), findsOneWidget);
+  });
+
+  testWidgets('home navigation switches to other tabs', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: MainShell()));
+
+    expect(find.byType(HomePage), findsOneWidget);
+    await tester.tap(find.text('Item'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Item segera hadir'), findsOneWidget);
   });
 }

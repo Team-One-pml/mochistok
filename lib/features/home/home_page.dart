@@ -4,8 +4,10 @@ import 'package:mochi_stok/core/theme.dart';
 class HomePage extends StatelessWidget {
   const HomePage({super.key, this.onViewAll});
 
+  // Callback ini diteruskan ke tombol "Semua" agar navigasi ditentukan oleh parent.
   final VoidCallback? onViewAll;
 
+  // Data contoh untuk menampilkan bahan yang jumlah stoknya perlu diperhatikan.
   static const _lowStockItems = [
     _LowStockItem(
       name: 'Mochi matcha',
@@ -29,6 +31,7 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // SafeArea mencegah konten tertutup status bar; ListView membuat halaman bisa digulir.
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
@@ -80,6 +83,7 @@ class HomePage extends StatelessWidget {
   }
 
   String _todayInIndonesian() {
+    // DateTime.weekday dimulai dari 1 (Senin), sehingga indeks daftar dikurangi 1.
     const weekdays = [
       'Senin',
       'Selasa',
@@ -104,11 +108,13 @@ class HomePage extends StatelessWidget {
       'Desember',
     ];
     final today = DateTime.now();
+    // Nama hari dan bulan diambil dari daftar bahasa Indonesia berdasarkan tanggal saat ini.
     return '${weekdays[today.weekday - 1]}, ${today.day} '
         '${months[today.month - 1]} ${today.year}';
   }
 }
 
+// Kartu ringkasan dipisahkan menjadi widget agar bisa digunakan ulang dengan isi berbeda.
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({
     required this.count,
@@ -126,6 +132,7 @@ class _SummaryCard extends StatelessWidget {
       height: 72,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
+        // Warna kartu berubah untuk menonjolkan informasi yang perlu diperhatikan.
         color: isHighlighted ? const Color(0xFFFFD8E0) : Colors.white,
         border: isHighlighted
             ? null
@@ -159,6 +166,7 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
+// Kartu ini menampilkan daftar stok menipis berdasarkan data yang diterima.
 class _LowStockCard extends StatelessWidget {
   const _LowStockCard({required this.items});
 
@@ -186,6 +194,7 @@ class _LowStockCard extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           const Divider(color: Color(0xFFFFA9BA), height: 8),
+          // Setiap data dibuat menjadi baris; pemisah tidak ditambahkan setelah baris terakhir.
           for (var index = 0; index < items.length; index++) ...[
             _LowStockRow(item: items[index]),
             if (index < items.length - 1)
@@ -197,6 +206,7 @@ class _LowStockCard extends StatelessWidget {
   }
 }
 
+// Model sederhana untuk menyimpan informasi yang dibutuhkan pada satu item stok.
 class _LowStockItem {
   const _LowStockItem({
     required this.name,
@@ -211,6 +221,7 @@ class _LowStockItem {
   final double progress;
 }
 
+// Widget baris menampilkan nama, batas minimum, jumlah saat ini, dan indikator stok.
 class _LowStockRow extends StatelessWidget {
   const _LowStockRow({required this.item});
 
@@ -286,6 +297,7 @@ class _LowStockRow extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
+              // Nilai progress menentukan panjang indikator, dengan rentang 0.0 sampai 1.0.
               value: item.progress,
               minHeight: 4,
               backgroundColor: const Color(0xFFFFA9BA),
@@ -298,6 +310,7 @@ class _LowStockRow extends StatelessWidget {
   }
 }
 
+// Bagian aktivitas menyediakan tombol yang aksinya diberikan oleh widget parent.
 class _RecentActivityCard extends StatelessWidget {
   const _RecentActivityCard({this.onViewAll});
 

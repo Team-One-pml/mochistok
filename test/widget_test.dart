@@ -35,7 +35,7 @@ void main() {
   testWidgets('shows home dashboard after login', (WidgetTester tester) async {
     await tester.pumpWidget(const MaterialApp(home: LoginPage()));
     await tester.enterText(find.byType(TextFormField).at(0), 'admin');
-    await tester.enterText(find.byType(TextFormField).at(1), 'password');
+    await tester.enterText(find.byType(TextFormField).at(1), 'admin123');
     await tester.tap(find.text('Masuk'));
     await tester.pumpAndSettle();
 

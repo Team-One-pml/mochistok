@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mochi_stok/core/theme.dart';
-
-// Catatan: Jika Anda sudah punya file home_page.dart, sesuaikan import ini
-// import 'package:mochi_stok/pages/home_page.dart';
+import 'package:mochi_stok/widgets/main_shell.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -55,11 +53,8 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
 
-      // Pindah ke Halaman Utama (Ganti DummyHomePage dengan HomePage milik Anda)
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => const DummyHomePage(),
-        ),
+        MaterialPageRoute<void>(builder: (_) => const MainShell()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -224,58 +219,11 @@ class _MochiLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 112,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 82,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3E9),
-                  borderRadius: BorderRadius.circular(36),
-                ),
-              ),
-              const Text('🐰', style: TextStyle(fontSize: 52, height: 1)),
-              const Positioned(
-                top: 3,
-                right: 12,
-                child: Text('🍓', style: TextStyle(fontSize: 19)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          const Text(
-            'Mochi-Madu',
-            style: TextStyle(
-              color: Color(0xFF8A453D),
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
-              height: 1,
-              shadows: [Shadow(color: Color(0xFFFFD98A), offset: Offset(0, 1))],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Widget placeholder untuk halaman setelah login (dapat diganti dengan HomePage proyek Anda)
-class DummyHomePage extends StatelessWidget {
-  const DummyHomePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard Mochi Stock')),
-      body: const Center(
-        child: Text('Selamat Datang di Halaman Utama!'),
-      ),
+    return Image.asset(
+      'assets/images/mochi_madu_logo.png',
+      height: 140,
+      fit: BoxFit.contain,
+      semanticLabel: 'Logo Mochi Madu Premium Quality',
     );
   }
 }

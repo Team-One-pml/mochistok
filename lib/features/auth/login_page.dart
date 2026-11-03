@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mochi_stok/core/theme.dart';
 
+// Catatan: Jika Anda sudah punya file home_page.dart, sesuaikan import ini
+// import 'package:mochi_stok/pages/home_page.dart';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -12,6 +15,7 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -20,14 +24,48 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Login belum terhubung ke layanan autentikasi.'),
-      ),
-    );
+    setState(() {
+      _isLoading = true;
+    });
+
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
+
+    // Simulasi delay proses login 1 detik
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    // Validasi dummy sederhana: menerima username 'admin' dan password 'admin123'
+    if (username == 'admin' && password == 'admin123') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Berhasil masuk!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Pindah ke Halaman Utama (Ganti DummyHomePage dengan HomePage milik Anda)
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => const DummyHomePage(),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Username atau password salah. (Gunakan: admin / admin123)'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -113,7 +151,7 @@ class _LoginPageState extends State<LoginPage> {
                               SizedBox(
                                 height: 44,
                                 child: FilledButton(
-                                  onPressed: _submit,
+                                  onPressed: _isLoading ? null : _submit,
                                   style: FilledButton.styleFrom(
                                     backgroundColor: MochiTheme.primary,
                                     foregroundColor: Colors.white,
@@ -125,7 +163,16 @@ class _LoginPageState extends State<LoginPage> {
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
-                                  child: const Text('Masuk'),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Text('Masuk'),
                                 ),
                               ),
                             ],
@@ -203,6 +250,21 @@ class _MochiLogo extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Widget placeholder untuk halaman setelah login (dapat diganti dengan HomePage proyek Anda)
+class DummyHomePage extends StatelessWidget {
+  const DummyHomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Dashboard Mochi Stock')),
+      body: const Center(
+        child: Text('Selamat Datang di Halaman Utama!'),
       ),
     );
   }

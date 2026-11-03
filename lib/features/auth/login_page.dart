@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mochi_stok/core/theme.dart';
-import 'package:mochi_stok/widgets/main_shell.dart';
+
+// Catatan: Jika Anda sudah punya file home_page.dart, sesuaikan import ini
+// import 'package:mochi_stok/pages/home_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -15,6 +17,7 @@ class _LoginPageState extends State<LoginPage> {
   // Controller menyimpan nilai yang diketik pengguna pada masing-masing field.
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -24,14 +27,48 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _submit() {
-    // Navigasi hanya dilakukan jika seluruh field lolos validasi.
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Ganti halaman login dengan halaman utama agar tombol kembali tidak kembali ke login.
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => const MainShell()),
-    );
+    setState(() {
+      _isLoading = true;
+    });
+
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
+
+    // Simulasi delay proses login 1 detik
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    // Validasi dummy sederhana: menerima username 'admin' dan password 'admin123'
+    if (username == 'admin' && password == 'admin123') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Berhasil masuk!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Pindah ke Halaman Utama (Ganti DummyHomePage dengan HomePage milik Anda)
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => const DummyHomePage(),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Username atau password salah. (Gunakan: admin / admin123)'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -122,8 +159,7 @@ class _LoginPageState extends State<LoginPage> {
                               SizedBox(
                                 height: 44,
                                 child: FilledButton(
-                                  // Tombol menjalankan validasi lalu membuka halaman utama.
-                                  onPressed: _submit,
+                                  onPressed: _isLoading ? null : _submit,
                                   style: FilledButton.styleFrom(
                                     backgroundColor: MochiTheme.primary,
                                     foregroundColor: Colors.white,
@@ -135,7 +171,16 @@ class _LoginPageState extends State<LoginPage> {
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
-                                  child: const Text('Masuk'),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Text('Masuk'),
                                 ),
                               ),
                             ],
@@ -179,11 +224,58 @@ class _MochiLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      'assets/images/mochi_madu_logo.png',
-      height: 140,
-      fit: BoxFit.contain,
-      semanticLabel: 'Logo Mochi Madu Premium Quality',
+    return SizedBox(
+      height: 112,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 82,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3E9),
+                  borderRadius: BorderRadius.circular(36),
+                ),
+              ),
+              const Text('🐰', style: TextStyle(fontSize: 52, height: 1)),
+              const Positioned(
+                top: 3,
+                right: 12,
+                child: Text('🍓', style: TextStyle(fontSize: 19)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          const Text(
+            'Mochi-Madu',
+            style: TextStyle(
+              color: Color(0xFF8A453D),
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              height: 1,
+              shadows: [Shadow(color: Color(0xFFFFD98A), offset: Offset(0, 1))],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Widget placeholder untuk halaman setelah login (dapat diganti dengan HomePage proyek Anda)
+class DummyHomePage extends StatelessWidget {
+  const DummyHomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Dashboard Mochi Stock')),
+      body: const Center(
+        child: Text('Selamat Datang di Halaman Utama!'),
+      ),
     );
   }
 }

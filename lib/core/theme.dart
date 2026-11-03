@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 
-// Kumpulan warna dan gaya global agar tampilan aplikasi tetap konsisten.
+// Kumpulan warna dan gaya global agar tampilan aplikasi tetap konsisten
 abstract final class MochiTheme {
-  // Warna utama digunakan untuk tombol dan elemen yang perlu ditonjolkan.
+  // Warna utama digunakan untuk tombol dan elemen yang perlu ditonjolkan
   static const Color primary = Color(0xFFFF2854);
-  // Warna teks utama, teks sekunder, dan garis komponen.
+  // Warna teks utama, teks sekunder, dan garis komponen
   static const Color ink = Color(0xFF202B27);
   static const Color muted = Color(0xFF78817D);
   static const Color outline = Color(0xFFE5EAE7);
 
-  // Tema terang menjadi sumber gaya dasar yang dipakai oleh seluruh aplikasi.
+  // Tema terang menjadi sumber gaya dasar yang dipakai oleh seluruh aplikasi
   static ThemeData get light {
-    // ColorScheme dibuat dari warna utama agar komponen Material selaras.
+    // ColorScheme dibuat dari warna utama agar komponen Material selaras
     final colorScheme = ColorScheme.fromSeed(
       seedColor: primary,
       primary: primary,
@@ -23,7 +23,7 @@ abstract final class MochiTheme {
       colorScheme: colorScheme,
       scaffoldBackgroundColor: Colors.white,
       textTheme: const TextTheme(bodyMedium: TextStyle(color: ink)),
-      // Pengaturan ini membuat semua input memiliki padding dan bentuk seragam.
+      // Pengaturan ini membuat semua input memiliki padding dan bentuk seragam
       inputDecorationTheme: InputDecorationTheme(
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 12,

@@ -158,23 +158,7 @@ class _ItemFormSheetState extends State<ItemFormSheet> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const FieldLabel('Satuan'),
-                        TextFormField(
-                          controller: _unit,
-                          textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(hintText: 'kg / pcs'),
-                          validator: (v) => (v == null || v.trim().isEmpty)
-                              ? 'Satuan wajib diisi.'
-                              : null,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
+                  // Stok di kiri
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,6 +172,24 @@ class _ItemFormSheetState extends State<ItemFormSheet> {
                           inputFormatters: [decimalFormatter],
                           decoration: const InputDecoration(hintText: '0'),
                           validator: (v) => _validateNumber(v, 'Stok'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  // Satuan di kanan
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const FieldLabel('Satuan'),
+                        TextFormField(
+                          controller: _unit,
+                          textInputAction: TextInputAction.next,
+                          decoration: const InputDecoration(hintText: 'kg / pcs'),
+                          validator: (v) => (v == null || v.trim().isEmpty)
+                              ? 'Satuan wajib diisi.'
+                              : null,
                         ),
                       ],
                     ),

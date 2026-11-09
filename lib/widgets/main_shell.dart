@@ -14,7 +14,7 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
-  // Item yang langsung dipilih di tab Stok (dipakai kalau nanti ada tombol isi ulang dari Beranda).
+  // Item yang langsung dipilih di tab Stok (saat datang dari Beranda).
   int? _restockItemId;
 
   static const _destinations = [
@@ -49,7 +49,13 @@ class _MainShellState extends State<MainShell> {
 
   Widget _buildPage() {
     return switch (_selectedIndex) {
-      0 => HomePage(onViewAll: () => _goTo(3)),
+      0 => HomePage(
+          onViewAll: () => _goTo(3),
+          onRestock: (item) => setState(() {
+            _restockItemId = item.id;
+            _selectedIndex = 2;
+          }),
+        ),
       1 => const ItemsPage(),
       2 => StockPage(
           key: ValueKey(_restockItemId),

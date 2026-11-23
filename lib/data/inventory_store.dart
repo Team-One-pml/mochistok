@@ -2,18 +2,16 @@ import 'package:flutter/widgets.dart';
 import 'package:mochi_stok/core/format.dart';
 import 'package:mochi_stok/models/item.dart';
 import 'package:mochi_stok/models/stock_record.dart';
+import 'package:mochi_stok/services/stock_service.dart';
 
-/// Sumber data tunggal untuk seluruh aplikasi (sementara masih di memori).
-/// Semua halaman membaca dan mengubah data lewat kelas ini, jadi Beranda,
-/// Item, Stok, dan Riwayat selalu sinkron.
-///
-/// Nanti kalau mau pakai SQLite/Firebase, cukup ubah isi kelas ini; halaman
-/// lain tidak perlu diubah.
+/// Sumber data tunggal untuk seluruh aplikasi.
+/// Terhubung langsung dengan StockService untuk persistensi data (Local Database/API).
 class InventoryStore extends ChangeNotifier {
-  InventoryStore() {
-    _loadSeed();
+  InventoryStore({StockService? service}) : _service = service ?? StockService() {
+    _initialize();
   }
 
+  final StockService _service;
   final List<Item> _items = [];
   final List<StockRecord> _history = []; // terbaru di indeks 0
   int _nextId = 100;
@@ -38,7 +36,33 @@ class InventoryStore extends ChangeNotifier {
     return null;
   }
 
+  Future<void> _initialize() async {
+    final savedItems = await _service.loadItems();
+    final savedHistory = await _service.loadHistory();
+
+    if (savedItems != null) {
+      _items.clear();
+      _items.addAll(savedItems);
+      if (_items.isNotEmpty) {
+        _nextId = _items.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
+      }
+    } else {
+      _loadSeed();
+      await _service.saveItems(_items);
+    }
+
+    if (savedHistory != null) {
+      _history.clear();
+      _history.addAll(savedHistory);
+    } else {
+      await _service.saveHistory(_history);
+    }
+
+    notifyListeners();
+  }
+
   void addItem({
+    String sku = '',
     required String name,
     required ItemType type,
     required String unit,
@@ -47,12 +71,14 @@ class InventoryStore extends ChangeNotifier {
   }) {
     _items.add(Item(
       id: _nextId++,
+      sku: sku,
       name: name,
       type: type,
       unit: unit,
       stock: stock,
       minimum: minimum,
     ));
+    _service.saveItems(_items);
     notifyListeners();
   }
 
@@ -60,21 +86,24 @@ class InventoryStore extends ChangeNotifier {
     final index = _items.indexWhere((i) => i.id == updated.id);
     if (index < 0) return;
     _items[index] = updated;
+    _service.saveItems(_items);
     notifyListeners();
   }
 
   void deleteItem(int id) {
     _items.removeWhere((i) => i.id == id);
+    _service.saveItems(_items);
     notifyListeners();
   }
 
-  /// Mencatat stok masuk/keluar. Mengembalikan pesan error bila gagal,
-  /// atau null bila berhasil.
+  /// Mencatat stok masuk/keluar (sinkron dengan skema tabel `stock_movements`).
+  /// Mengembalikan pesan error bila gagal, atau null bila berhasil.
   String? recordStock({
     required int itemId,
     required StockDirection direction,
     required double quantity,
     String note = '',
+    String? pathBuktiNota,
   }) {
     final index = _items.indexWhere((i) => i.id == itemId);
     if (index < 0) return 'Item tidak ditemukan.';
@@ -89,7 +118,7 @@ class InventoryStore extends ChangeNotifier {
     final raw = direction == StockDirection.masuk
         ? item.stock + quantity
         : item.stock - quantity;
-    final newStock = (raw * 100).round() / 100; // hindari 0.30000000000000004
+    final newStock = (raw * 100).round() / 100; // hindari floating point issue
 
     _items[index] = item.copyWith(stock: newStock);
     _history.insert(
@@ -106,6 +135,11 @@ class InventoryStore extends ChangeNotifier {
         stockAfter: newStock,
       ),
     );
+
+    // Simpan perubahan ke persistent storage via service
+    _service.saveItems(_items);
+    _service.saveHistory(_history);
+
     notifyListeners();
     return null;
   }
@@ -114,19 +148,21 @@ class InventoryStore extends ChangeNotifier {
     _items.clear();
     _history.clear();
     _loadSeed();
+    _service.saveItems(_items);
+    _service.saveHistory(_history);
     notifyListeners();
   }
 
   void _loadSeed() {
     _items.addAll(const [
-      Item(id: 1, name: 'Tepung ketan', type: ItemType.bahan, unit: 'kg', stock: 12, minimum: 10),
-      Item(id: 2, name: 'Gula pasir', type: ItemType.bahan, unit: 'kg', stock: 4, minimum: 5),
-      Item(id: 3, name: 'Kacang tanah sangrai', type: ItemType.bahan, unit: 'kg', stock: 6.5, minimum: 3),
-      Item(id: 4, name: 'Bubuk matcha', type: ItemType.bahan, unit: 'kg', stock: 0.8, minimum: 1),
-      Item(id: 5, name: 'Mochi kacang', type: ItemType.produk, unit: 'pcs', stock: 48, minimum: 30),
-      Item(id: 6, name: 'Mochi matcha', type: ItemType.produk, unit: 'pcs', stock: 22, minimum: 30),
-      Item(id: 7, name: 'Mochi cokelat', type: ItemType.produk, unit: 'pcs', stock: 35, minimum: 30),
-      Item(id: 8, name: 'Mochi stroberi', type: ItemType.produk, unit: 'pcs', stock: 60, minimum: 30),
+      Item(id: 1, sku: 'MCH-TPG-KETAN-500G', name: 'Tepung ketan', type: ItemType.bahan, unit: 'kg', stock: 12, minimum: 10),
+      Item(id: 2, sku: 'MCH-GLA-PASIR-1KG', name: 'Gula pasir', type: ItemType.bahan, unit: 'kg', stock: 4, minimum: 5),
+      Item(id: 3, sku: 'MCH-KCG-SNGR-1KG', name: 'Kacang tanah sangrai', type: ItemType.bahan, unit: 'kg', stock: 6.5, minimum: 3),
+      Item(id: 4, sku: 'MCH-MTCH-BBK-1KG', name: 'Bubuk matcha', type: ItemType.bahan, unit: 'kg', stock: 0.8, minimum: 1),
+      Item(id: 5, sku: 'PRD-MCH-KCG-PCS', name: 'Mochi kacang', type: ItemType.produk, unit: 'pcs', stock: 48, minimum: 30),
+      Item(id: 6, sku: 'PRD-MCH-MTCH-PCS', name: 'Mochi matcha', type: ItemType.produk, unit: 'pcs', stock: 22, minimum: 30),
+      Item(id: 7, sku: 'PRD-MCH-CKL-PCS', name: 'Mochi cokelat', type: ItemType.produk, unit: 'pcs', stock: 35, minimum: 30),
+      Item(id: 8, sku: 'PRD-MCH-STRW-PCS', name: 'Mochi stroberi', type: ItemType.produk, unit: 'pcs', stock: 60, minimum: 30),
     ]);
 
     DateTime ago(int hours, [int minutes = 0]) =>

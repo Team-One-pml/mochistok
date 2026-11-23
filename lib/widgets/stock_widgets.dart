@@ -54,7 +54,7 @@ class StockStatusPill extends StatelessWidget {
   }
 }
 
-// Satu baris item: nama, batas minimum, jumlah stok, status, dan bar stok.
+// Satu baris item: nama, kategori, batas minimum, jumlah stok, status, dan bar stok.
 class ItemTile extends StatelessWidget {
   const ItemTile({super.key, required this.item, this.onTap});
 
@@ -68,11 +68,10 @@ class ItemTile extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 11),
         child: Column(
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Column(
@@ -80,35 +79,32 @@ class ItemTile extends StatelessWidget {
                     children: [
                       Text(
                         item.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: MochiTheme.ink,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Minimum ${formatQuantity(item.minimum, item.unit)}',
-                        style: TextStyle(
-                          color: isOk ? MochiTheme.muted : MochiTheme.primary,
-                          fontSize: 10,
+                        '${item.categoryName} · Min ${formatQuantity(item.minimum, item.unit)}',
+                        style: const TextStyle(
+                          color: MochiTheme.muted,
+                          fontSize: 11,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
                       formatQuantity(item.stock, item.unit),
-                      style: const TextStyle(
-                        color: MochiTheme.ink,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                      style: TextStyle(
+                        color: isOk ? MochiTheme.ink : MochiTheme.primary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -117,14 +113,13 @@ class ItemTile extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             ClipRRect(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(99),
               child: LinearProgressIndicator(
                 value: item.progress,
                 minHeight: 4,
-                backgroundColor:
-                    isOk ? MochiTheme.successSoft : MochiTheme.border,
+                backgroundColor: MochiTheme.border,
                 valueColor: AlwaysStoppedAnimation(
                   isOk ? MochiTheme.success : MochiTheme.primary,
                 ),
@@ -137,7 +132,7 @@ class ItemTile extends StatelessWidget {
   }
 }
 
-// Satu baris riwayat: nama item, waktu + catatan, jumlah, dan pill Masuk/Keluar.
+// Satu baris riwayat pencatatan: arah (masuk/keluar), nama item, waktu, jumlah, dan sisa stok setelahnya.
 class HistoryTile extends StatelessWidget {
   const HistoryTile({super.key, required this.record});
 
@@ -145,52 +140,70 @@ class HistoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isIn = record.direction == StockDirection.masuk;
-    final note = record.note.isEmpty ? '' : ' · ${record.note}';
+    final isMasuk = record.direction == StockDirection.masuk;
+    final qtyPrefix = isMasuk ? '+' : '-';
+    final qtyColor = isMasuk ? MochiTheme.success : MochiTheme.primary;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: isMasuk ? MochiTheme.successSoft : MochiTheme.softPink,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isMasuk ? Icons.arrow_downward : Icons.arrow_upward,
+              size: 16,
+              color: qtyColor,
+            ),
+          ),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   record.itemName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: MochiTheme.ink,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${formatDateTime(record.time)}$note',
-                  style: const TextStyle(color: MochiTheme.muted, fontSize: 10),
+                  formatDateTime(record.time) +
+                      (record.note.isNotEmpty ? ' · ${record.note}' : ''),
+                  style: const TextStyle(
+                    color: MochiTheme.muted,
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${isIn ? '+' : '−'}${formatQuantity(record.quantity, record.unit)}',
-                style: const TextStyle(
-                  color: MochiTheme.ink,
-                  fontSize: 12,
+                '$qtyPrefix${formatQuantity(record.quantity, record.unit)}',
+                style: TextStyle(
+                  color: qtyColor,
+                  fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 2),
-              StatusPill(
-                label: record.direction.label,
-                foreground: isIn ? MochiTheme.success : MochiTheme.primary,
-                background: isIn ? MochiTheme.successSoft : MochiTheme.softPink,
+              Text(
+                'Sisa: ${formatQuantity(record.stockAfter, record.unit)}',
+                style: const TextStyle(
+                  color: MochiTheme.muted,
+                  fontSize: 10,
+                ),
               ),
             ],
           ),

@@ -1,21 +1,25 @@
 import 'package:flutter/widgets.dart';
 import 'package:mochi_stok/core/format.dart';
+import 'package:mochi_stok/models/category.dart';
 import 'package:mochi_stok/models/item.dart';
 import 'package:mochi_stok/models/stock_record.dart';
 import 'package:mochi_stok/services/stock_service.dart';
 
 /// Sumber data tunggal untuk seluruh aplikasi.
-/// Terhubung langsung dengan StockService untuk persistensi data (Local Database/API).
+/// Fokus 100% pada Inventaris Bahan Baku Mochi dengan dukungan Multi-Kategori Dinamis.
 class InventoryStore extends ChangeNotifier {
   InventoryStore({StockService? service}) : _service = service ?? StockService() {
     _initialize();
   }
 
   final StockService _service;
+  final List<Category> _categories = [];
   final List<Item> _items = [];
-  final List<StockRecord> _history = []; // terbaru di indeks 0
+  final List<StockRecord> _history = [];
   int _nextId = 100;
+  int _nextCategoryId = 10;
 
+  List<Category> get categories => List.unmodifiable(_categories);
   List<Item> get items => List.unmodifiable(_items);
   List<StockRecord> get history => List.unmodifiable(_history);
 
@@ -36,10 +40,29 @@ class InventoryStore extends ChangeNotifier {
     return null;
   }
 
+  Category? findCategoryById(int id) {
+    for (final c in _categories) {
+      if (c.id == id) return c;
+    }
+    return null;
+  }
+
   Future<void> _initialize() async {
+    final savedCategories = await _service.loadCategories();
     final savedItems = await _service.loadItems();
     final savedHistory = await _service.loadHistory();
 
+    // 1. Kategori
+    if (savedCategories != null && savedCategories.isNotEmpty) {
+      _categories.clear();
+      _categories.addAll(savedCategories);
+      _nextCategoryId = _categories.map((c) => c.id).reduce((a, b) => a > b ? a : b) + 1;
+    } else {
+      _loadDefaultCategories();
+      await _service.saveCategories(_categories);
+    }
+
+    // 2. Items
     if (savedItems != null) {
       _items.clear();
       _items.addAll(savedItems);
@@ -47,33 +70,50 @@ class InventoryStore extends ChangeNotifier {
         _nextId = _items.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
       }
     } else {
-      _loadSeed();
+      _loadSeedItems();
       await _service.saveItems(_items);
     }
 
+    // 3. Riwayat
     if (savedHistory != null) {
       _history.clear();
       _history.addAll(savedHistory);
     } else {
+      _loadSeedHistory();
       await _service.saveHistory(_history);
     }
 
     notifyListeners();
   }
 
+  /// Menambah kategori bahan baru (misal: "Bahan Tambahan", "Packaging Khusus")
+  Category addCategory(String name, {String description = ''}) {
+    final newCategory = Category(
+      id: _nextCategoryId++,
+      name: name.trim(),
+      description: description.trim(),
+    );
+    _categories.add(newCategory);
+    _service.saveCategories(_categories);
+    notifyListeners();
+    return newCategory;
+  }
+
   void addItem({
     String sku = '',
     required String name,
-    required ItemType type,
+    required int categoryId,
     required String unit,
     required double stock,
     required double minimum,
   }) {
+    final cat = findCategoryById(categoryId);
     _items.add(Item(
       id: _nextId++,
       sku: sku,
       name: name,
-      type: type,
+      categoryId: categoryId,
+      categoryName: cat?.name ?? 'Bahan Utama',
       unit: unit,
       stock: stock,
       minimum: minimum,
@@ -96,8 +136,7 @@ class InventoryStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Mencatat stok masuk/keluar (sinkron dengan skema tabel `stock_movements`).
-  /// Mengembalikan pesan error bila gagal, atau null bila berhasil.
+  /// Mencatat stok masuk/keluar (sinkron dengan tabel `stock_movements`).
   String? recordStock({
     required int itemId,
     required StockDirection direction,
@@ -118,7 +157,7 @@ class InventoryStore extends ChangeNotifier {
     final raw = direction == StockDirection.masuk
         ? item.stock + quantity
         : item.stock - quantity;
-    final newStock = (raw * 100).round() / 100; // hindari floating point issue
+    final newStock = (raw * 100).round() / 100;
 
     _items[index] = item.copyWith(stock: newStock);
     _history.insert(
@@ -136,7 +175,6 @@ class InventoryStore extends ChangeNotifier {
       ),
     );
 
-    // Simpan perubahan ke persistent storage via service
     _service.saveItems(_items);
     _service.saveHistory(_history);
 
@@ -145,41 +183,54 @@ class InventoryStore extends ChangeNotifier {
   }
 
   void reset() {
+    _categories.clear();
     _items.clear();
     _history.clear();
-    _loadSeed();
+    _loadDefaultCategories();
+    _loadSeedItems();
+    _loadSeedHistory();
+    _service.saveCategories(_categories);
     _service.saveItems(_items);
     _service.saveHistory(_history);
     notifyListeners();
   }
 
-  void _loadSeed() {
-    _items.addAll(const [
-      Item(id: 1, sku: 'MCH-TPG-KETAN-500G', name: 'Tepung ketan', type: ItemType.bahan, unit: 'kg', stock: 12, minimum: 10),
-      Item(id: 2, sku: 'MCH-GLA-PASIR-1KG', name: 'Gula pasir', type: ItemType.bahan, unit: 'kg', stock: 4, minimum: 5),
-      Item(id: 3, sku: 'MCH-KCG-SNGR-1KG', name: 'Kacang tanah sangrai', type: ItemType.bahan, unit: 'kg', stock: 6.5, minimum: 3),
-      Item(id: 4, sku: 'MCH-MTCH-BBK-1KG', name: 'Bubuk matcha', type: ItemType.bahan, unit: 'kg', stock: 0.8, minimum: 1),
-      Item(id: 5, sku: 'PRD-MCH-KCG-PCS', name: 'Mochi kacang', type: ItemType.produk, unit: 'pcs', stock: 48, minimum: 30),
-      Item(id: 6, sku: 'PRD-MCH-MTCH-PCS', name: 'Mochi matcha', type: ItemType.produk, unit: 'pcs', stock: 22, minimum: 30),
-      Item(id: 7, sku: 'PRD-MCH-CKL-PCS', name: 'Mochi cokelat', type: ItemType.produk, unit: 'pcs', stock: 35, minimum: 30),
-      Item(id: 8, sku: 'PRD-MCH-STRW-PCS', name: 'Mochi stroberi', type: ItemType.produk, unit: 'pcs', stock: 60, minimum: 30),
+  void _loadDefaultCategories() {
+    _categories.addAll(const [
+      Category(id: 1, name: 'Bahan Utama', description: 'Tepung, gula, dan bahan adonan inti'),
+      Category(id: 2, name: 'Topping & Isian', description: 'Selai, cokelat, kacang, dan filling'),
+      Category(id: 3, name: 'Packaging', description: 'Mika, cup, kotak kemasan'),
     ]);
+  }
 
+  void _loadSeedItems() {
+    _items.addAll(const [
+      Item(id: 1, sku: 'MCH-TPG-KETAN-500G', name: 'Tepung Ketan Bola', categoryId: 1, categoryName: 'Bahan Utama', unit: 'kg', stock: 12, minimum: 10),
+      Item(id: 2, sku: 'MCH-GLA-PASIR-1KG', name: 'Gula Pasir', categoryId: 1, categoryName: 'Bahan Utama', unit: 'kg', stock: 4, minimum: 5),
+      Item(id: 3, sku: 'MCH-TPG-MZNA-1KG', name: 'Tepung Maizena', categoryId: 1, categoryName: 'Bahan Utama', unit: 'kg', stock: 5, minimum: 3),
+      Item(id: 4, sku: 'TOP-CKL-FILL-5KG', name: 'Coklat Filling', categoryId: 2, categoryName: 'Topping & Isian', unit: 'kg', stock: 6.5, minimum: 4),
+      Item(id: 5, sku: 'TOP-SEL-STRWB-1KG', name: 'Selai Strawberry', categoryId: 2, categoryName: 'Topping & Isian', unit: 'kg', stock: 2, minimum: 3),
+      Item(id: 6, sku: 'TOP-NUT-JAR-350G', name: 'Nutella Jar 350g', categoryId: 2, categoryName: 'Topping & Isian', unit: 'gram', stock: 700, minimum: 1000),
+      Item(id: 7, sku: 'PCK-MKA-6A-PCK', name: 'Mika 6A', categoryId: 3, categoryName: 'Packaging', unit: 'pack', stock: 25, minimum: 20),
+      Item(id: 8, sku: 'PCK-CUP-25ML-PCK', name: 'Cup Mika 25ml', categoryId: 3, categoryName: 'Packaging', unit: 'pack', stock: 8, minimum: 15),
+    ]);
+  }
+
+  void _loadSeedHistory() {
     DateTime ago(int hours, [int minutes = 0]) =>
         DateTime.now().subtract(Duration(hours: hours, minutes: minutes));
 
     _history.addAll([
-      StockRecord(id: 1, time: ago(1, 10), itemId: 6, itemName: 'Mochi matcha', direction: StockDirection.keluar, quantity: 18, unit: 'pcs', note: 'Pesanan kantor', stockAfter: 22),
-      StockRecord(id: 2, time: ago(3), itemId: 5, itemName: 'Mochi kacang', direction: StockDirection.masuk, quantity: 40, unit: 'pcs', note: 'Produksi pagi', stockAfter: 48),
-      StockRecord(id: 3, time: ago(4, 20), itemId: 2, itemName: 'Gula pasir', direction: StockDirection.keluar, quantity: 3, unit: 'kg', note: 'Dipakai produksi', stockAfter: 4),
-      StockRecord(id: 4, time: ago(26), itemId: 1, itemName: 'Tepung ketan', direction: StockDirection.masuk, quantity: 10, unit: 'kg', note: 'Belanja pasar', stockAfter: 12),
+      StockRecord(id: 1, time: ago(1, 10), itemId: 7, itemName: 'Mika 6A', direction: StockDirection.keluar, quantity: 5, unit: 'pack', note: 'Packing pesanan', stockAfter: 25),
+      StockRecord(id: 2, time: ago(3), itemId: 4, itemName: 'Coklat Filling', direction: StockDirection.masuk, quantity: 5, unit: 'kg', note: 'Restock supplier', stockAfter: 6.5),
+      StockRecord(id: 3, time: ago(4, 20), itemId: 2, itemName: 'Gula Pasir', direction: StockDirection.keluar, quantity: 3, unit: 'kg', note: 'Produksi adonan', stockAfter: 4),
+      StockRecord(id: 4, time: ago(26), itemId: 1, itemName: 'Tepung Ketan Bola', direction: StockDirection.masuk, quantity: 10, unit: 'kg', note: 'Belanja grosir', stockAfter: 12),
     ]);
   }
 }
 
 /// Membuat store bisa diakses dari halaman mana pun:
 ///   final store = InventoryScope.of(context);
-/// Halaman otomatis dibangun ulang saat data berubah.
 class InventoryScope extends InheritedNotifier<InventoryStore> {
   const InventoryScope({
     super.key,

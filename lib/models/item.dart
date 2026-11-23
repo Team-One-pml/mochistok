@@ -1,12 +1,3 @@
-// Jenis item: bahan baku atau mochi jadi.
-enum ItemType {
-  bahan('Bahan baku'),
-  produk('Mochi jadi');
-
-  const ItemType(this.label);
-  final String label;
-}
-
 // Status stok dihitung otomatis dari jumlah stok dan batas minimum.
 enum StockStatus {
   aman('Aman'),
@@ -17,12 +8,14 @@ enum StockStatus {
   final String label;
 }
 
+/// Model Item Bahan Baku (dipetakan ke tabel `items` di database MySQL).
 class Item {
   const Item({
     required this.id,
     this.sku = '',
     required this.name,
-    required this.type,
+    this.categoryId = 1,
+    this.categoryName = 'Bahan Utama',
     required this.unit,
     required this.stock,
     required this.minimum,
@@ -31,7 +24,8 @@ class Item {
   final int id;
   final String sku;
   final String name;
-  final ItemType type;
+  final int categoryId;
+  final String categoryName;
   final String unit;
   final double stock;
   final double minimum;
@@ -51,7 +45,8 @@ class Item {
   Item copyWith({
     String? sku,
     String? name,
-    ItemType? type,
+    int? categoryId,
+    String? categoryName,
     String? unit,
     double? stock,
     double? minimum,
@@ -60,7 +55,8 @@ class Item {
       id: id,
       sku: sku ?? this.sku,
       name: name ?? this.name,
-      type: type ?? this.type,
+      categoryId: categoryId ?? this.categoryId,
+      categoryName: categoryName ?? this.categoryName,
       unit: unit ?? this.unit,
       stock: stock ?? this.stock,
       minimum: minimum ?? this.minimum,
@@ -72,7 +68,8 @@ class Item {
       'id': id,
       'sku': sku,
       'name': name,
-      'type': type.name,
+      'kategori_id': categoryId,
+      'category_name': categoryName,
       'unit': unit,
       'stock': stock,
       'minimum': minimum,
@@ -84,7 +81,8 @@ class Item {
       id: int.parse(json['id'].toString()),
       sku: json['sku'] as String? ?? '',
       name: json['name'] as String? ?? '',
-      type: json['type'] == 'produk' ? ItemType.produk : ItemType.bahan,
+      categoryId: int.tryParse(json['kategori_id']?.toString() ?? '1') ?? 1,
+      categoryName: json['category_name'] as String? ?? 'Bahan Utama',
       unit: json['unit'] as String? ?? '',
       stock: double.tryParse(json['stock'].toString()) ?? 0.0,
       minimum: double.tryParse(json['minimum'].toString()) ?? 0.0,

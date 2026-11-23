@@ -89,14 +89,14 @@ class _StockPageState extends State<StockPage> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
         children: [
-          const PageHeader(title: 'Catat stok', subtitle: 'Stok masuk atau keluar'),
+          const PageHeader(title: 'Catat stok', subtitle: 'Stok masuk atau keluar bahan baku'),
           const SizedBox(height: 14),
           if (selected == null)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 40),
               child: Center(
                 child: Text(
-                  'Belum ada item. Tambah item dulu di tab Item.',
+                  'Belum ada bahan baku. Tambah bahan dulu di tab Bahan Baku.',
                   style: TextStyle(color: MochiTheme.muted, fontSize: 12),
                 ),
               ),
@@ -109,12 +109,6 @@ class _StockPageState extends State<StockPage> {
   }
 
   List<Widget> _buildForm(InventoryStore store, List<Item> items, Item selected) {
-    // Bahan baku ditampilkan dulu, lalu mochi jadi.
-    final sorted = [
-      ...items.where((i) => i.type == ItemType.bahan),
-      ...items.where((i) => i.type == ItemType.produk),
-    ];
-
     // Pratinjau stok setelah pencatatan.
     final qty = parseNumber(_qty.text);
     final after = qty == null
@@ -136,17 +130,17 @@ class _StockPageState extends State<StockPage> {
         }),
       ),
       const SizedBox(height: 14),
-      const FieldLabel('Item'),
+      const FieldLabel('Bahan Baku'),
       DropdownButtonFormField<int>(
         initialValue: selected.id,
         isExpanded: true,
         decoration: const InputDecoration(),
         items: [
-          for (final item in sorted)
+          for (final item in items)
             DropdownMenuItem(
               value: item.id,
               child: Text(
-                '${item.name} (${item.type.label})',
+                '${item.name} (${item.categoryName})',
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 13),
               ),
@@ -245,8 +239,8 @@ class _StockPageState extends State<StockPage> {
         textInputAction: TextInputAction.done,
         decoration: InputDecoration(
           hintText: _direction == StockDirection.masuk
-              ? 'Contoh: produksi pagi'
-              : 'Contoh: pesanan pelanggan',
+              ? 'Contoh: pasokan supplier baru'
+              : 'Contoh: dipakai untuk adonan kloter 1',
         ),
       ),
       if (_error != null) ...[

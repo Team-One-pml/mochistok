@@ -49,7 +49,7 @@ class HomePage extends StatelessWidget {
               Expanded(
                 child: _SummaryCard(
                   count: '${store.items.length}',
-                  title: 'Jenis item',
+                  title: 'Bahan baku',
                   isHighlighted: false,
                 ),
               ),

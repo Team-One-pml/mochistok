@@ -24,7 +24,7 @@ class _MainShellState extends State<MainShell> {
       selectedIcon: Icons.home_outlined,
     ),
     _NavigationDestinationData(
-      label: 'Item',
+      label: 'Bahan',
       icon: Icons.inventory_2_outlined,
       selectedIcon: Icons.inventory_2_outlined,
     ),

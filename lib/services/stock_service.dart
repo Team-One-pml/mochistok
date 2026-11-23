@@ -1,41 +1,56 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mochi_stok/models/category.dart';
 import 'package:mochi_stok/models/item.dart';
 import 'package:mochi_stok/models/stock_transaction.dart';
 import 'package:mochi_stok/models/stock_record.dart';
 
 /// Service untuk menangani transaksi pergerakan stok (`stock_movements`)
-/// dan persistensi data item & riwayat secara asynchronous.
-///
-/// Dirancang dengan pola API Service:
-/// - Saat ini menggunakan Local Storage (SharedPreferences) sehingga data aman saat refresh.
-/// - Siap dihubungkan ke REST API MySQL kapan saja (cukup aktifkan pemanggilan HTTP).
+/// dan persistensi data item, kategori & riwayat secara asynchronous.
 class StockService {
   StockService({this.baseUrl = 'http://localhost/api'});
 
   final String baseUrl;
 
-  static const String _keyItems = 'mochi_stok_items';
-  static const String _keyHistory = 'mochi_stok_history';
+  static const String _keyCategories = 'mochi_stok_categories';
+  static const String _keyItems = 'mochi_stok_items_v2';
+  static const String _keyHistory = 'mochi_stok_history_v2';
 
-  /// Memuat daftar item tersimpan dari penyimpanan lokal (Local Database/Storage)
+  /// Memuat daftar kategori dari penyimpanan
+  Future<List<Category>?> loadCategories() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_keyCategories);
+    if (raw == null) return null;
+
+    final list = jsonDecode(raw) as List<dynamic>;
+    return list.map((e) => Category.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// Menyimpan daftar kategori ke penyimpanan
+  Future<void> saveCategories(List<Category> categories) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = jsonEncode(categories.map((c) => c.toJson()).toList());
+    await prefs.setString(_keyCategories, raw);
+  }
+
+  /// Memuat daftar item bahan baku tersimpan
   Future<List<Item>?> loadItems() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_keyItems);
-    if (raw == null) return null; // Belum pernah disimpan, gunakan data awal (seed)
+    if (raw == null) return null;
 
     final list = jsonDecode(raw) as List<dynamic>;
     return list.map((e) => Item.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  /// Menyimpan seluruh item ke penyimpanan lokal
+  /// Menyimpan seluruh item ke penyimpanan
   Future<void> saveItems(List<Item> items) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = jsonEncode(items.map((i) => i.toJson()).toList());
     await prefs.setString(_keyItems, raw);
   }
 
-  /// Memuat riwayat mutasi stok dari penyimpanan lokal
+  /// Memuat riwayat mutasi stok
   Future<List<StockRecord>?> loadHistory() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_keyHistory);
@@ -53,7 +68,6 @@ class StockService {
   }
 
   /// Mencatat pergerakan stok masuk atau keluar ke tabel `stock_movements`.
-  /// Memvalidasi integritas bisnis seperti stok mencukupi untuk transaksi keluar.
   Future<StockTransaction> recordMovement({
     required int itemId,
     required String itemName,
@@ -64,12 +78,10 @@ class StockService {
     String note = '',
     String? pathBuktiNota,
   }) async {
-    // Validasi kuantitas
     if (quantity <= 0) {
       throw ArgumentError('Kuantitas stok harus lebih dari 0.');
     }
 
-    // Validasi integritas bisnis: Stok keluar tidak boleh melebihi sisa stok
     if (direction == StockDirection.keluar && quantity > currentStock) {
       throw StateError(
         'Stok tidak mencukupi! Stok saat ini: $currentStock $unit, diminta keluar: $quantity $unit.',
@@ -81,10 +93,9 @@ class StockService {
         ? (currentStock + quantity)
         : (currentStock - quantity);
 
-    // Pembulatan 2 desimal sesuai tipe DECIMAL(12,2) di database
     final roundedStockAfter = (stockAfter * 100).round() / 100;
 
-    final transaction = StockTransaction(
+    return StockTransaction(
       id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
       itemId: itemId,
       itemName: itemName,
@@ -97,14 +108,5 @@ class StockService {
       pathBuktiNota: pathBuktiNota,
       createdAt: DateTime.now(),
     );
-
-    // Di Skenario A, pemanggilan REST API ke MySQL:
-    // await http.post(
-    //   Uri.parse('$baseUrl/stock_movements'),
-    //   headers: {'Content-Type': 'application/json'},
-    //   body: jsonEncode(transaction.toJson()),
-    // );
-
-    return transaction;
   }
 }

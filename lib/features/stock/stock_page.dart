@@ -62,20 +62,43 @@ class _StockPageState extends State<StockPage> {
 
     // Ambil status terbaru setelah stok berubah untuk pesan peringatan.
     final updated = store.findById(item.id);
-    var message = '${_direction.label} ${formatQuantity(quantity, item.unit)} '
-        '${item.name}';
-    if (updated != null && updated.status != StockStatus.aman) {
-      message += '. Stok ${updated.status.label.toLowerCase()}!';
-    }
+    final isLowOrCritical = updated != null && updated.status != StockStatus.aman;
 
     setState(() {
       _error = null;
       _qty.clear();
       _note.clear();
     });
+
+    // Tampilkan SnackBar notifikasi dengan warna dinamis (merah jika menipis/habis)
+    final snackBar = SnackBar(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: isLowOrCritical ? const Color(0xFFC53030) : const Color(0xFF2B8A3E),
+      content: Row(
+        children: [
+          Icon(
+            isLowOrCritical ? Icons.warning_amber_rounded : Icons.check_circle_outline,
+            color: Colors.white,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              isLowOrCritical
+                  ? 'Perhatian: Stok ${item.name} kini tersisa ${formatQuantity(updated.stock, updated.unit)} (${updated.status.label.toUpperCase()})!'
+                  : '${_direction.label} ${formatQuantity(quantity, item.unit)} ${item.name} berhasil disimpan.',
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+      duration: Duration(seconds: isLowOrCritical ? 4 : 2),
+    );
+
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+      ..showSnackBar(snackBar);
+
     widget.onSaved?.call();
   }
 
@@ -119,6 +142,11 @@ class _StockPageState extends State<StockPage> {
     final afterColor = after < 0
         ? MochiTheme.primary
         : (after < selected.minimum ? MochiTheme.primary : MochiTheme.ink);
+
+    // Deteksi apakah stok setelah transaksi ini akan menjadi habis / menipis / mendekati minimum
+    final isDepleted = after <= 0;
+    final isLow = after > 0 && after < selected.minimum;
+    final isNearMinimum = after >= selected.minimum && after <= (selected.minimum * 1.25);
 
     return [
       MochiSegmented<StockDirection>(
@@ -215,7 +243,15 @@ class _StockPageState extends State<StockPage> {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                   decoration: BoxDecoration(
-                    border: Border.all(color: MochiTheme.outline),
+                    border: Border.all(
+                      color: (isDepleted || isLow)
+                          ? MochiTheme.primary
+                          : (isNearMinimum ? Colors.orange : MochiTheme.outline),
+                      width: (isDepleted || isLow || isNearMinimum) ? 1.5 : 1,
+                    ),
+                    color: (isDepleted || isLow)
+                        ? MochiTheme.softPink.withValues(alpha: 0.3)
+                        : (isNearMinimum ? Colors.orange.withValues(alpha: 0.08) : Colors.white),
                     borderRadius: BorderRadius.circular(9),
                   ),
                   child: Text(
@@ -232,6 +268,46 @@ class _StockPageState extends State<StockPage> {
           ),
         ],
       ),
+      // REAL-TIME WARNING BANNER JIKA STOK MENIPIS / MENDEKATI MINIMUM
+      if (_direction == StockDirection.keluar && (isDepleted || isLow || isNearMinimum)) ...[
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: (isDepleted || isLow) ? const Color(0xFFFFECEF) : const Color(0xFFFFF4E6),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: (isDepleted || isLow) ? MochiTheme.primary.withValues(alpha: 0.5) : Colors.orange.withValues(alpha: 0.5),
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                size: 18,
+                color: (isDepleted || isLow) ? MochiTheme.primary : const Color(0xFFD97706),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  isDepleted
+                      ? 'Peringatan: Stok bahan akan HABIS (0 ${selected.unit}) setelah pengeluaran ini!'
+                      : (isLow
+                          ? 'Perhatian: Sisa stok (${formatNumber(after)} ${selected.unit}) berada di bawah batas minimum (${formatQuantity(selected.minimum, selected.unit)})!'
+                          : 'Peringatan Dini: Sisa stok (${formatNumber(after)} ${selected.unit}) sudah mendekati batas minimum (${formatQuantity(selected.minimum, selected.unit)}). Segera jadwalkan pembelian ulang.'),
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    height: 1.3,
+                    fontWeight: FontWeight.w600,
+                    color: (isDepleted || isLow) ? MochiTheme.primary : const Color(0xFFB45309),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
       const SizedBox(height: 12),
       const FieldLabel('Catatan'),
       TextField(

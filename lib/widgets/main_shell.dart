@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mochi_stok/core/theme.dart';
-import 'package:mochi_stok/features/history/history_page.dart';
 import 'package:mochi_stok/features/home/home_page.dart';
 import 'package:mochi_stok/features/items/items_page.dart';
+import 'package:mochi_stok/features/reports/reports_page.dart';
 import 'package:mochi_stok/features/stock/stock_page.dart';
 
 class MainShell extends StatefulWidget {
@@ -34,9 +34,9 @@ class _MainShellState extends State<MainShell> {
       selectedIcon: Icons.swap_horiz,
     ),
     _NavigationDestinationData(
-      label: 'Riwayat',
-      icon: Icons.access_time,
-      selectedIcon: Icons.access_time,
+      label: 'Laporan',
+      icon: Icons.bar_chart_outlined,
+      selectedIcon: Icons.bar_chart,
     ),
   ];
 
@@ -62,7 +62,7 @@ class _MainShellState extends State<MainShell> {
           initialItemId: _restockItemId,
           onSaved: () => _goTo(0),
         ),
-      _ => const HistoryPage(),
+      _ => const ReportsPage(),
     };
   }
 
@@ -88,12 +88,13 @@ class _MainShellState extends State<MainShell> {
                 backgroundColor: Colors.white,
                 indicatorColor: const Color(0xFFFFE6EB),
                 labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+                elevation: 0,
                 destinations: [
-                  for (final destination in _destinations)
+                  for (final d in _destinations)
                     NavigationDestination(
-                      icon: Icon(destination.icon),
-                      selectedIcon: Icon(destination.selectedIcon),
-                      label: destination.label,
+                      icon: Icon(d.icon, size: 22),
+                      selectedIcon: Icon(d.selectedIcon, size: 22, color: MochiTheme.primary),
+                      label: d.label,
                     ),
                 ],
               ),
